@@ -1,0 +1,780 @@
+// Tournament App — Y2K Game Show direction.
+// Cream/yellow bg, chunky purple/cyan/red blocks, bold drop-shadows, VT323 + Space Grotesk.
+
+const C = {
+  bg:        "#fef3c7",
+  bg2:       "#fffaeb",
+  paper:     "#ffffff",
+  ink:       "#1a0f00",
+  dim:       "#7a6a4a",
+  purple:    "#7c3aed",
+  cyan:      "#06b6d4",
+  red:       "#ef4444",
+  green:     "#22c55e",
+  pink:      "#ec4899",
+  orange:    "#f97316",
+  yellow:    "#facc15",
+  bremen:    "#ef4444",
+  wulmstorf: "#06b6d4",
+};
+
+// ─── Primitives ───────────────────────────────────────────────
+
+const ChunkyBox = ({ children, style = {}, bg = C.paper, shadow = 6, radius = 18 }) => (
+  <div style={{
+    position: "relative",
+    border: `3px solid ${C.ink}`,
+    borderRadius: radius,
+    background: bg,
+    boxShadow: `${shadow}px ${shadow}px 0 0 ${C.ink}`,
+    ...style,
+  }}>{children}</div>
+);
+
+const Sticker = ({ color = C.yellow, children, style = {} }) => (
+  <div style={{
+    display: "inline-flex", alignItems: "center",
+    padding: "4px 10px",
+    background: color, border: `2px solid ${C.ink}`,
+    borderRadius: 999, fontWeight: 700, fontSize: 11, letterSpacing: 0.5,
+    boxShadow: `2px 2px 0 0 ${C.ink}`, whiteSpace: "nowrap", width: "fit-content",
+    ...style,
+  }}>{children}</div>
+);
+
+const ChunkyButton = ({ color = C.purple, children, onClick, disabled, style = {} }) => (
+  <button onClick={onClick} disabled={disabled} style={{
+    fontFamily: "'Space Grotesk', sans-serif", fontWeight: 800,
+    fontSize: 13, letterSpacing: 0.5, padding: "10px 18px",
+    background: disabled ? C.bg : color, color: disabled ? C.dim : "#fff",
+    border: `3px solid ${C.ink}`, borderRadius: 12,
+    boxShadow: disabled ? "none" : `4px 4px 0 0 ${C.ink}`,
+    cursor: disabled ? "not-allowed" : "pointer",
+    textTransform: "uppercase", transition: "transform .08s, box-shadow .08s",
+    ...style,
+  }}
+    onMouseDown={e => !disabled && (e.currentTarget.style.transform = "translate(2px,2px)", e.currentTarget.style.boxShadow = `2px 2px 0 0 ${C.ink}`)}
+    onMouseUp={e => !disabled && (e.currentTarget.style.transform = "", e.currentTarget.style.boxShadow = `4px 4px 0 0 ${C.ink}`)}
+    onMouseLeave={e => !disabled && (e.currentTarget.style.transform = "", e.currentTarget.style.boxShadow = `4px 4px 0 0 ${C.ink}`)}
+  >{children}</button>
+);
+
+const Pixel = ({ children, color = C.ink, size = 14 }) => (
+  <span style={{ fontFamily: "'VT323', monospace", fontSize: size, color, letterSpacing: 1 }}>{children}</span>
+);
+
+const Splat = ({ color, size = 80, style = {} }) => (
+  <svg width={size} height={size} viewBox="0 0 100 100" style={style}>
+    <path d="M50 5 L62 22 L82 18 L78 38 L95 50 L78 62 L82 82 L62 78 L50 95 L38 78 L18 82 L22 62 L5 50 L22 38 L18 18 L38 22 Z"
+      fill={color} stroke={C.ink} strokeWidth="3" strokeLinejoin="round"/>
+  </svg>
+);
+
+// ─── Header ───────────────────────────────────────────────────
+
+const Y2KHeader = ({ scores, round, tab, setTab }) => {
+  const tabs = [
+    { id: "pickban", label: "Pick & Ban",  color: C.purple },
+    { id: "teams",   label: "Teams",       color: C.pink   },
+    { id: "scores",  label: "Scoreboard",  color: C.green  },
+    { id: "shop",    label: "Shop",        color: C.orange },
+  ];
+  return (
+    <div style={{ padding: "20px 28px 0", position: "relative", zIndex: 2 }}>
+      <ChunkyBox bg={C.paper} radius={22}>
+        <div style={{ padding: "20px 28px 22px", display: "grid", gridTemplateColumns: "1fr 1.3fr 1fr", alignItems: "center", gap: 24 }}>
+
+          {/* Bremen */}
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <div style={{
+              flexShrink: 0, width: 56, height: 56, borderRadius: 12,
+              background: C.bremen, border: `3px solid ${C.ink}`,
+              display: "grid", placeItems: "center", color: "#fff",
+              fontFamily: "'VT323', monospace", fontSize: 32, fontWeight: 700,
+              boxShadow: `3px 3px 0 ${C.ink}`,
+            }}>B</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
+              <Sticker color={C.bremen} style={{ color: "#fff", alignSelf: "flex-start" }}>BREMEN</Sticker>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                <span style={{ fontSize: 11, fontWeight: 800, color: C.dim, letterSpacing: 1 }}>ROUNDS</span>
+                <div style={{ fontFamily: "'VT323', monospace", fontSize: 32, lineHeight: 1, color: C.bremen, fontWeight: 700 }}>
+                  {String(scores.bremen.rounds).padStart(2, "0")}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Centre title */}
+          <div style={{ textAlign: "center", position: "relative", padding: "4px 0" }}>
+            <Splat color={C.yellow} size={90} style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%) rotate(-8deg)", zIndex: 0, opacity: 0.7 }}/>
+            <div style={{ position: "relative", zIndex: 1 }}>
+              <div style={{ fontFamily: "'VT323', monospace", fontSize: 13, letterSpacing: 3, color: C.purple, fontWeight: 700 }}>★ NIGHT ONE ★</div>
+              <div style={{ fontFamily: "'VT323', monospace", fontSize: 36, fontWeight: 900, letterSpacing: 1, color: C.ink, lineHeight: 1, marginTop: 2 }}>
+                SOFA <span style={{ color: C.red, fontStyle: "italic" }}>vs</span> SOFA
+              </div>
+              <div style={{ fontSize: 11, color: C.dim, marginTop: 4, fontWeight: 700, letterSpacing: 1 }}>
+                WULMSTORF EDITION • RND {round}/6
+              </div>
+            </div>
+          </div>
+
+          {/* Wulmstorf */}
+          <div style={{ display: "flex", alignItems: "center", gap: 14, justifyContent: "flex-end" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-end", minWidth: 0 }}>
+              <Sticker color={C.wulmstorf} style={{ color: "#fff" }}>WULMSTORF</Sticker>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+                <div style={{ fontFamily: "'VT323', monospace", fontSize: 32, lineHeight: 1, color: C.wulmstorf, fontWeight: 700 }}>
+                  {String(scores.wulmstorf.rounds).padStart(2, "0")}
+                </div>
+                <span style={{ fontSize: 11, fontWeight: 800, color: C.dim, letterSpacing: 1 }}>ROUNDS</span>
+              </div>
+            </div>
+            <div style={{
+              flexShrink: 0, width: 56, height: 56, borderRadius: 12,
+              background: C.wulmstorf, border: `3px solid ${C.ink}`,
+              display: "grid", placeItems: "center", color: "#fff",
+              fontFamily: "'VT323', monospace", fontSize: 32, fontWeight: 700,
+              boxShadow: `3px 3px 0 ${C.ink}`,
+            }}>W</div>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div style={{ borderTop: `3px solid ${C.ink}`, display: "flex" }}>
+          {tabs.map((t, i) => {
+            const active = tab === t.id;
+            return (
+              <button key={t.id} onClick={() => setTab(t.id)} style={{
+                flex: 1, padding: "14px 0",
+                background: active ? t.color : "transparent",
+                color: active ? "#fff" : C.ink,
+                border: "none",
+                borderRight: i < tabs.length - 1 ? `3px solid ${C.ink}` : "none",
+                fontFamily: "'Space Grotesk', sans-serif", fontWeight: 800, fontSize: 14,
+                textTransform: "uppercase", letterSpacing: 1, cursor: "pointer",
+                borderBottomLeftRadius:  i === 0 ? 18 : 0,
+                borderBottomRightRadius: i === tabs.length - 1 ? 18 : 0,
+              }}>{t.label}</button>
+            );
+          })}
+        </div>
+      </ChunkyBox>
+    </div>
+  );
+};
+
+// ─── Pick & Ban ───────────────────────────────────────────────
+
+const Y2KPickBan = ({ data, state, setState }) => {
+  const { GAME_POOL, TEAMS } = data;
+  const [timer, setTimer] = React.useState(state.current.timer);
+  const [hovered, setHovered] = React.useState(null);
+
+  React.useEffect(() => {
+    if (timer <= 0) return;
+    const id = setInterval(() => setTimer(t => Math.max(0, t - 1)), 1000);
+    return () => clearInterval(id);
+  }, [timer, state.current.round]);
+
+  const banned    = new Set(state.bans.map(b => b.gameId));
+  const picked    = new Set(state.picks.map(p => p.gameId));
+  const turnTeam  = TEAMS[state.current.team];
+  const turnColor = turnTeam.id === "bremen" ? C.bremen : C.wulmstorf;
+
+  const slots = Array.from({ length: state.rounds }, (_, i) => {
+    const round = i + 1;
+    const pick = state.picks.find(p => p.round === round);
+    const isCurrent = round === state.current.round && state.current.action === "pick";
+    return { round, pick, isCurrent, points: round };
+  });
+
+  const handlePick = (gameId) => {
+    if (banned.has(gameId) || picked.has(gameId) || state.current.action !== "pick") return;
+    const newPick  = { round: state.current.round, team: state.current.team, gameId, points: state.current.round };
+    const nextRound = state.current.round + 1;
+    setState({
+      ...state,
+      picks: [...state.picks, newPick],
+      current: nextRound > state.rounds
+        ? { ...state.current, round: nextRound, action: "done" }
+        : { round: nextRound, action: "pick", team: state.current.team === "bremen" ? "wulmstorf" : "bremen", timer: 30 },
+    });
+    setTimer(30);
+  };
+
+  return (
+    <div style={{ padding: 28, display: "grid", gap: 20 }}>
+      {/* Now-selecting bar */}
+      <ChunkyBox bg={C.paper} radius={20}>
+        <div style={{ padding: "18px 22px", display: "grid", gridTemplateColumns: "minmax(220px, auto) 1fr auto", alignItems: "center", gap: 24 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <Sticker color={turnColor} style={{ color: "#fff", alignSelf: "flex-start" }}>NOW SELECTING</Sticker>
+            <div style={{ fontFamily: "'VT323', monospace", fontSize: 32, lineHeight: 1, color: turnColor, fontWeight: 700 }}>{turnTeam.name}</div>
+            <div style={{ fontSize: 12, color: C.dim, fontWeight: 700 }}>
+              Round {state.current.round} • {state.current.action === "pick" ? "Pick a game" : "Ban a game"}
+            </div>
+          </div>
+
+          {/* Round slots */}
+          <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+            {slots.map(s => {
+              const g          = s.pick ? GAME_POOL.find(x => x.id === s.pick.gameId) : null;
+              const slotColor  = s.pick ? (s.pick.team === "bremen" ? C.bremen : C.wulmstorf) : C.bg;
+              return (
+                <div key={s.round} style={{
+                  width: 76, height: 96,
+                  background: s.isCurrent ? C.yellow : (s.pick ? slotColor : C.paper),
+                  border: `3px solid ${C.ink}`, borderRadius: 12,
+                  boxShadow: s.isCurrent ? `4px 4px 0 ${C.ink}` : `3px 3px 0 ${C.ink}`,
+                  position: "relative", display: "grid", placeItems: "center",
+                  animation: s.isCurrent ? "pulse 1s ease-in-out infinite" : "none",
+                  transform: s.isCurrent ? "rotate(-2deg)" : "none",
+                }}>
+                  <div style={{ position: "absolute", top: 4, left: 6, fontFamily: "'VT323', monospace", fontSize: 14, color: C.ink, fontWeight: 700 }}>R{s.round}</div>
+                  <div style={{ position: "absolute", top: 4, right: 6, fontFamily: "'VT323', monospace", fontSize: 14, color: C.ink, fontWeight: 700 }}>+{s.points}</div>
+                  <div style={{ fontSize: 30 }}>{g ? g.art : "?"}</div>
+                  <div style={{ position: "absolute", bottom: 4, fontSize: 9, fontWeight: 700, color: s.pick ? "#fff" : C.dim, maxWidth: 64, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", textAlign: "center" }}>
+                    {g ? g.name : "—"}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Timer */}
+          <div style={{ textAlign: "center" }}>
+            <Sticker color={timer <= 10 ? C.red : C.green} style={{ color: "#fff" }}>TIMER</Sticker>
+            <div style={{
+              fontFamily: "'VT323', monospace", fontSize: 64, lineHeight: 1,
+              color: timer <= 10 ? C.red : C.ink, marginTop: 4, fontWeight: 700,
+              animation: timer <= 10 ? "pulse 0.5s ease-in-out infinite" : "none",
+            }}>:{String(timer).padStart(2, "0")}</div>
+          </div>
+        </div>
+      </ChunkyBox>
+
+      {/* Three-column: Bremen | Pool | Wulmstorf */}
+      <div style={{ display: "grid", gridTemplateColumns: "260px 1fr 260px", gap: 20 }}>
+
+        {/* Bremen sidebar */}
+        {["bremen", "wulmstorf"].reduce((acc, teamId) => {
+          const isBremen = teamId === "bremen";
+          const teamColor = isBremen ? C.bremen : C.wulmstorf;
+          const col = (
+            <ChunkyBox key={teamId} bg={C.paper} radius={18}>
+              <div style={{ padding: 16 }}>
+                <Sticker color={teamColor} style={{ color: "#fff" }}>{isBremen ? "BREMEN" : "WULMSTORF"}</Sticker>
+                <div style={{ fontSize: 11, color: C.dim, fontWeight: 600, marginTop: 10 }}>BANS</div>
+                <div style={{ marginTop: 6, display: "grid", gap: 6 }}>
+                  {state.bans.filter(b => b.team === teamId).map((b, i) => {
+                    const g = GAME_POOL.find(x => x.id === b.gameId);
+                    return (
+                      <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", background: C.bg, borderRadius: 10, border: `2px solid ${C.ink}` }}>
+                        <div style={{ fontSize: 18 }}>{g.art}</div>
+                        <div style={{ flex: 1, textDecoration: "line-through", fontSize: 12, fontWeight: 600 }}>{g.name}</div>
+                        <span style={{ fontSize: 10, fontWeight: 800, color: C.red }}>BAN</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div style={{ fontSize: 11, color: C.dim, fontWeight: 600, marginTop: 14 }}>PICKS</div>
+                <div style={{ marginTop: 6, display: "grid", gap: 6 }}>
+                  {state.picks.filter(p => p.team === teamId).map((p, i) => {
+                    const g = GAME_POOL.find(x => x.id === p.gameId);
+                    return (
+                      <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", background: teamColor, color: "#fff", borderRadius: 10, border: `2px solid ${C.ink}`, boxShadow: `2px 2px 0 ${C.ink}` }}>
+                        <div style={{ fontSize: 18 }}>{g.art}</div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 9, fontWeight: 800, opacity: 0.8 }}>R{p.round}</div>
+                          <div style={{ fontSize: 12, fontWeight: 700 }}>{g.name}</div>
+                        </div>
+                        <Pixel size={16} color="#fff">+{p.points}</Pixel>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </ChunkyBox>
+          );
+          return isBremen ? [col, ...acc] : [...acc, col];
+        }, [])}
+
+        {/* Game pool — inserted between the two sidebars above via grid order */}
+        <ChunkyBox bg={C.paper} radius={18} style={{ gridColumn: "2", gridRow: "1" }}>
+          <div style={{ padding: 18 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+              <div>
+                <div style={{ fontFamily: "'VT323', monospace", fontSize: 28, lineHeight: 1, color: C.ink, fontWeight: 700 }}>Game Pool</div>
+                <div style={{ fontSize: 12, color: C.dim, marginTop: 2 }}>Tap a game to pick it for the next round.</div>
+              </div>
+              <div style={{ display: "flex", gap: 6 }}>
+                <Sticker color={C.bg2}>{GAME_POOL.length} titles</Sticker>
+                <Sticker color={C.red}  style={{ color: "#fff" }}>{banned.size} banned</Sticker>
+                <Sticker color={C.green} style={{ color: "#fff" }}>{picked.size} picked</Sticker>
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+              {GAME_POOL.map(g => {
+                const isBanned  = banned.has(g.id);
+                const isPicked  = picked.has(g.id);
+                const pickedBy  = state.picks.find(p => p.gameId === g.id);
+                const accent    = isPicked ? (pickedBy.team === "bremen" ? C.bremen : C.wulmstorf) : isBanned ? C.red : C.purple;
+                const clickable = !isBanned && !isPicked && state.current.action === "pick";
+                return (
+                  <button key={g.id}
+                    onClick={() => handlePick(g.id)}
+                    onMouseEnter={() => setHovered(g.id)}
+                    onMouseLeave={() => setHovered(null)}
+                    disabled={!clickable}
+                    style={{
+                      position: "relative", padding: 12,
+                      background: isBanned ? C.bg2 : isPicked ? accent : C.paper,
+                      color: isPicked ? "#fff" : C.ink,
+                      border: `3px solid ${C.ink}`, borderRadius: 14,
+                      boxShadow: hovered === g.id && clickable ? `5px 5px 0 ${C.ink}` : `3px 3px 0 ${C.ink}`,
+                      cursor: clickable ? "pointer" : "default", textAlign: "left",
+                      transition: "all .12s",
+                      transform: hovered === g.id && clickable ? "translate(-2px,-2px) rotate(-1deg)" : "none",
+                      opacity: isBanned ? 0.6 : 1,
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                      <div style={{ fontSize: 32, filter: isBanned ? "grayscale(0.5)" : "none" }}>{g.art}</div>
+                      <Sticker color={isPicked ? "#fff" : isBanned ? C.red : C.yellow} style={{ color: isPicked ? accent : C.ink, fontSize: 9 }}>
+                        {g.category}
+                      </Sticker>
+                    </div>
+                    <div style={{ fontSize: 14, fontWeight: 800, marginTop: 8, lineHeight: 1.15, textDecoration: isBanned ? "line-through" : "none" }}>
+                      {g.name}
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontSize: 11, fontWeight: 600, opacity: 0.8 }}>
+                      <span>{g.players}</span>
+                      <span>{g.duration} min</span>
+                    </div>
+                    {isBanned && (
+                      <div style={{ position: "absolute", top: -8, right: -8, background: C.red, color: "#fff", fontSize: 10, fontWeight: 800, padding: "3px 8px", border: `2px solid ${C.ink}`, borderRadius: 999, boxShadow: `2px 2px 0 ${C.ink}`, transform: "rotate(8deg)" }}>BANNED</div>
+                    )}
+                    {isPicked && (
+                      <div style={{ position: "absolute", top: -8, right: -8, background: C.yellow, color: C.ink, fontSize: 10, fontWeight: 800, padding: "3px 8px", border: `2px solid ${C.ink}`, borderRadius: 999, boxShadow: `2px 2px 0 ${C.ink}`, transform: "rotate(8deg)" }}>R{pickedBy.round}</div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </ChunkyBox>
+      </div>
+    </div>
+  );
+};
+
+// ─── Teams (flip cards) ───────────────────────────────────────
+
+const FlipCard = ({ member, teamColor, teamId }) => {
+  const [flipped, setFlipped] = React.useState(false);
+  return (
+    <div onClick={() => setFlipped(f => !f)} style={{ perspective: 1000, height: 240, cursor: "pointer" }}>
+      <div style={{
+        position: "relative", width: "100%", height: "100%",
+        transformStyle: "preserve-3d",
+        transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)",
+        transition: "transform .6s",
+      }}>
+        {/* Front */}
+        <div style={{
+          position: "absolute", inset: 0, backfaceVisibility: "hidden",
+          background: C.paper, border: `3px solid ${C.ink}`, borderRadius: 16,
+          boxShadow: `4px 4px 0 ${C.ink}`, padding: 14,
+          display: "flex", flexDirection: "column", justifyContent: "space-between",
+        }}>
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <Sticker color={teamColor} style={{ color: "#fff", fontSize: 9 }}>{teamId === "bremen" ? "BRE" : "WUL"}</Sticker>
+            <span style={{ fontSize: 10, color: C.dim, fontWeight: 700 }}>FLIP ↻</span>
+          </div>
+          <div style={{
+            width: "70%", aspectRatio: "1", margin: "0 auto",
+            background: teamColor, border: `3px solid ${C.ink}`, borderRadius: 12,
+            boxShadow: `3px 3px 0 ${C.ink}`, display: "grid", placeItems: "center",
+            fontFamily: "'VT323', monospace", fontSize: 56, color: "#fff", transform: "rotate(-3deg)",
+          }}>{member.name[0]}</div>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: C.ink }}>{member.name}</div>
+            <div style={{ fontSize: 11, color: C.dim, fontWeight: 600 }}>{member.role}</div>
+          </div>
+        </div>
+        {/* Back */}
+        <div style={{
+          position: "absolute", inset: 0, backfaceVisibility: "hidden",
+          transform: "rotateY(180deg)",
+          background: teamColor, color: "#fff",
+          border: `3px solid ${C.ink}`, borderRadius: 16,
+          boxShadow: `4px 4px 0 ${C.ink}`, padding: 14,
+          display: "flex", flexDirection: "column", gap: 8,
+        }}>
+          <Sticker color={C.yellow}>STATS</Sticker>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4, fontSize: 11 }}>
+            <span style={{ opacity: 0.8 }}>Main</span><span style={{ fontWeight: 700 }}>{member.main}?</span>
+            <span style={{ opacity: 0.8 }}>Wins</span><span style={{ fontWeight: 700 }}>{member.wins}</span>
+            <span style={{ opacity: 0.8 }}>K/D</span><span style={{ fontWeight: 700 }}>{member.kd}</span>
+          </div>
+          <div style={{ marginTop: "auto", borderTop: "2px dashed rgba(255,255,255,0.4)", paddingTop: 8 }}>
+            <div style={{ fontSize: 10, opacity: 0.8, fontWeight: 700 }}>QUOTE</div>
+            <div style={{ fontSize: 12, fontStyle: "italic", marginTop: 2 }}>"{member.quote}"</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const Y2KTeams = ({ data }) => {
+  const { TEAMS } = data;
+  return (
+    <div style={{ padding: 28, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+      {Object.values(TEAMS).map(team => {
+        const teamColor = team.id === "bremen" ? C.bremen : C.wulmstorf;
+        return (
+          <ChunkyBox key={team.id} bg={C.paper} radius={20}>
+            <div style={{ padding: 20 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 18 }}>
+                <div>
+                  <Sticker color={teamColor} style={{ color: "#fff" }}>★ ROSTER</Sticker>
+                  <div style={{ fontFamily: "'VT323', monospace", fontSize: 40, lineHeight: 1, color: teamColor, marginTop: 6, fontWeight: 700 }}>{team.name}</div>
+                  <div style={{ fontSize: 13, color: C.dim, fontWeight: 600, fontStyle: "italic" }}>"{team.motto}"</div>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontSize: 11, color: C.dim, fontWeight: 700 }}>MEMBERS</div>
+                  <div style={{ fontFamily: "'VT323', monospace", fontSize: 44, lineHeight: 1, color: C.ink, fontWeight: 700 }}>{team.members.length}</div>
+                </div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+                {team.members.map(m => (
+                  <FlipCard key={m.id} member={m} teamColor={teamColor} teamId={team.id}/>
+                ))}
+              </div>
+            </div>
+          </ChunkyBox>
+        );
+      })}
+    </div>
+  );
+};
+
+// ─── Scoreboard ───────────────────────────────────────────────
+
+const Y2KScoreboard = ({ data }) => {
+  const { ROUND_RESULTS, LEDGER, TEAM_SCORES, TEAMS, POINT_ACTIONS } = data;
+  const leader = TEAM_SCORES.bremen.rounds === TEAM_SCORES.wulmstorf.rounds
+    ? "tie"
+    : TEAM_SCORES.bremen.rounds > TEAM_SCORES.wulmstorf.rounds ? "bremen" : "wulmstorf";
+
+  return (
+    <div style={{ padding: 28, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+      {/* Round results */}
+      <ChunkyBox bg={C.paper} radius={20}>
+        <div style={{ padding: 20 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, gap: 12, flexWrap: "wrap" }}>
+            <div style={{ fontFamily: "'VT323', monospace", fontSize: 28, fontWeight: 700, lineHeight: 1, whiteSpace: "nowrap" }}>Round Results</div>
+            <Sticker color={C.yellow}>★ LEADER: {leader === "tie" ? "TIE" : leader.toUpperCase()}</Sticker>
+          </div>
+
+          <div style={{ display: "grid", gap: 10 }}>
+            {ROUND_RESULTS.map(r => {
+              const winnerColor = r.winner === "bremen" ? C.bremen : C.wulmstorf;
+              const winnerTag   = TEAMS[r.winner].tag;
+              return (
+                <div key={r.round} style={{
+                  display: "grid", gridTemplateColumns: "auto 1fr auto auto", gap: 14, alignItems: "center",
+                  padding: "12px 14px", background: C.paper,
+                  border: `3px solid ${C.ink}`, borderLeft: `12px solid ${winnerColor}`,
+                  borderRadius: 12, boxShadow: `3px 3px 0 ${C.ink}`,
+                }}>
+                  <div style={{ fontFamily: "'VT323', monospace", fontSize: 28, fontWeight: 700, lineHeight: 1 }}>R{r.round}</div>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 800 }}>{r.game}</div>
+                    <div style={{ fontSize: 11, color: C.dim, fontWeight: 600 }}>{r.score}</div>
+                  </div>
+                  <Sticker color={winnerColor} style={{ color: "#fff" }}>{winnerTag}</Sticker>
+                  <div style={{ fontFamily: "'VT323', monospace", fontSize: 24, color: C.ink, fontWeight: 700 }}>+{r.pts}</div>
+                </div>
+              );
+            })}
+            {[4, 5, 6].map(r => (
+              <div key={r} style={{
+                display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 14, alignItems: "center",
+                padding: "12px 14px", background: C.bg2,
+                border: `3px dashed ${C.dim}`, borderRadius: 12,
+              }}>
+                <div style={{ fontFamily: "'VT323', monospace", fontSize: 24, color: C.dim, fontWeight: 700 }}>R{r}</div>
+                <div style={{ fontSize: 12, color: C.dim, fontWeight: 600 }}>Awaiting Pick & Ban…</div>
+                <div style={{ fontFamily: "'VT323', monospace", fontSize: 22, color: C.dim }}>+{r}</div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{
+            marginTop: 18, padding: 16, background: C.yellow,
+            border: `3px solid ${C.ink}`, borderRadius: 14, boxShadow: `3px 3px 0 ${C.ink}`,
+            display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: 16, alignItems: "center",
+          }}>
+            <div style={{ textAlign: "center" }}>
+              <Sticker color={C.bremen} style={{ color: "#fff" }}>BREMEN</Sticker>
+              <div style={{ fontFamily: "'VT323', monospace", fontSize: 56, lineHeight: 1, color: C.bremen, fontWeight: 700, marginTop: 4 }}>
+                {String(TEAM_SCORES.bremen.rounds).padStart(2, "0")}
+              </div>
+            </div>
+            <div style={{ fontFamily: "'VT323', monospace", fontSize: 28, fontWeight: 700, color: C.ink }}>VS</div>
+            <div style={{ textAlign: "center" }}>
+              <Sticker color={C.wulmstorf} style={{ color: "#fff" }}>WULMSTORF</Sticker>
+              <div style={{ fontFamily: "'VT323', monospace", fontSize: 56, lineHeight: 1, color: C.wulmstorf, fontWeight: 700, marginTop: 4 }}>
+                {String(TEAM_SCORES.wulmstorf.rounds).padStart(2, "0")}
+              </div>
+            </div>
+          </div>
+        </div>
+      </ChunkyBox>
+
+      {/* Live ledger + earning guide */}
+      <ChunkyBox bg={C.paper} radius={20}>
+        <div style={{ padding: 20 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, gap: 12, flexWrap: "wrap" }}>
+            <div style={{ fontFamily: "'VT323', monospace", fontSize: 28, fontWeight: 700, lineHeight: 1, whiteSpace: "nowrap" }}>Live Ledger</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ width: 10, height: 10, background: C.green, borderRadius: "50%", display: "inline-block", animation: "pulse 1s ease-in-out infinite" }}/>
+              <span style={{ fontSize: 11, fontWeight: 800, color: C.green }}>LIVE</span>
+            </div>
+          </div>
+
+          <div style={{ display: "grid", gap: 8 }}>
+            {LEDGER.map((e, i) => {
+              const teamColor = e.team === "bremen" ? C.bremen : C.wulmstorf;
+              const icon = e.action === "MVP of Match" ? "👑" : e.action === "Fastest Round" ? "⚡" : e.action.includes("Comeback") ? "🔥" : "🎤";
+              return (
+                <div key={i} style={{
+                  display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 12, alignItems: "center",
+                  padding: "10px 12px", background: C.paper,
+                  border: `2px solid ${C.ink}`, borderLeft: `8px solid ${teamColor}`,
+                  borderRadius: 12, boxShadow: `2px 2px 0 ${C.ink}`,
+                }}>
+                  <div style={{ fontSize: 22 }}>{icon}</div>
+                  <div>
+                    <div style={{ fontSize: 13 }}>
+                      <span style={{ color: teamColor, fontWeight: 800 }}>{e.player}</span>
+                      <span style={{ color: C.dim }}> • </span>
+                      <span style={{ fontWeight: 700 }}>{e.action}</span>
+                    </div>
+                    <div style={{ fontSize: 11, color: C.dim }}>{e.game} • {e.t}</div>
+                  </div>
+                  <div style={{ fontFamily: "'VT323', monospace", fontSize: 24, color: C.green, fontWeight: 700 }}>+{e.points}</div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div style={{ marginTop: 18 }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: C.dim, marginBottom: 8 }}>HOW TO EARN POINTS</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              {POINT_ACTIONS.map(a => (
+                <div key={a.name} style={{
+                  display: "flex", alignItems: "center", gap: 10, padding: "10px 12px",
+                  background: C.bg, border: `2px solid ${C.ink}`, borderRadius: 10,
+                }}>
+                  <div style={{ fontSize: 20 }}>{a.icon}</div>
+                  <div style={{ flex: 1, fontSize: 12, fontWeight: 700 }}>{a.name}</div>
+                  <Sticker color={C.green} style={{ color: "#fff" }}>+{a.points}</Sticker>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </ChunkyBox>
+    </div>
+  );
+};
+
+// ─── Shop ─────────────────────────────────────────────────────
+
+const Y2KShop = ({ data, balances, setBalances, purchases, setPurchases }) => {
+  const { SHOP_ITEMS, TEAMS } = data;
+  const [activeTeam, setActiveTeam] = React.useState("bremen");
+  const teamColor = activeTeam === "bremen" ? C.bremen : C.wulmstorf;
+  const balance   = balances[activeTeam];
+
+  const handleBuy = (item) => {
+    if (balances[activeTeam] < item.price) return;
+    setBalances(b => ({ ...b, [activeTeam]: b[activeTeam] - item.price }));
+    setPurchases(p => [{ team: activeTeam, item, price: item.price, t: new Date().toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }) }, ...p]);
+  };
+
+  return (
+    <div style={{ padding: 28, display: "grid", gridTemplateColumns: "320px 1fr", gap: 20 }}>
+      <div style={{ display: "grid", gap: 16, alignContent: "start" }}>
+        <ChunkyBox bg={C.paper} radius={20}>
+          <div style={{ padding: 18 }}>
+            <Sticker color={C.orange} style={{ color: "#fff" }}>★ INSERT POINTS ★</Sticker>
+            <div style={{ fontFamily: "'VT323', monospace", fontSize: 28, fontWeight: 700, marginTop: 6, lineHeight: 1 }}>Outside Shop</div>
+            <div style={{ fontSize: 12, color: C.dim, fontWeight: 600 }}>Points expire @ 24:00. Spend 'em or lose 'em.</div>
+            <div style={{ marginTop: 14, display: "grid", gap: 10 }}>
+              {Object.values(TEAMS).map(t => {
+                const tc     = t.id === "bremen" ? C.bremen : C.wulmstorf;
+                const active = t.id === activeTeam;
+                return (
+                  <button key={t.id} onClick={() => setActiveTeam(t.id)} style={{
+                    padding: "12px 14px",
+                    background: active ? tc : C.paper, color: active ? "#fff" : C.ink,
+                    border: `3px solid ${C.ink}`, borderRadius: 14, cursor: "pointer",
+                    textAlign: "left", boxShadow: active ? `4px 4px 0 ${C.ink}` : `2px 2px 0 ${C.ink}`,
+                    display: "grid", gridTemplateColumns: "minmax(0,1fr) auto", gap: 8, alignItems: "center",
+                  }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 11, fontWeight: 800, opacity: 0.8 }}>{t.tag}</div>
+                      <div style={{ fontSize: 13, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{t.name}</div>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ fontSize: 9, opacity: 0.7, fontWeight: 700 }}>BALANCE</div>
+                      <div style={{ fontFamily: "'VT323', monospace", fontSize: 26, fontWeight: 700, lineHeight: 1 }}>{balances[t.id]}P</div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </ChunkyBox>
+
+        <ChunkyBox bg={C.cyan} radius={18}>
+          <div style={{ padding: 16, color: "#fff" }}>
+            <div style={{ fontSize: 11, fontWeight: 800, opacity: 0.9 }}>RECENT BUYS</div>
+            {purchases.length === 0 ? (
+              <div style={{ marginTop: 8, fontSize: 12, fontWeight: 700, opacity: 0.7 }}>No purchases yet.</div>
+            ) : (
+              <div style={{ marginTop: 8, display: "grid", gap: 6 }}>
+                {purchases.slice(0, 5).map((p, i) => (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 700 }}>
+                    <span>{p.item.icon} {p.item.name} — {p.team === "bremen" ? "Bremen" : "Wulmstorf"}</span>
+                    <span>−{p.price}P</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </ChunkyBox>
+      </div>
+
+      <ChunkyBox bg={C.paper} radius={20}>
+        <div style={{ padding: 20 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, gap: 12, flexWrap: "wrap" }}>
+            <div style={{ fontFamily: "'VT323', monospace", fontSize: 28, fontWeight: 700, lineHeight: 1, color: teamColor, whiteSpace: "nowrap" }}>
+              Shop ▸ {activeTeam === "bremen" ? "Bremen" : "Wulmstorf"}
+            </div>
+            <Sticker color={C.yellow}>{balance}P AVAILABLE</Sticker>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0,1fr))", gap: 14 }}>
+            {SHOP_ITEMS.map(item => {
+              const affordable = balance >= item.price;
+              return (
+                <div key={item.id} style={{
+                  padding: 14, background: C.paper,
+                  border: `3px solid ${C.ink}`, borderRadius: 14, boxShadow: `3px 3px 0 ${C.ink}`,
+                  opacity: affordable ? 1 : 0.6,
+                  display: "grid", gridTemplateColumns: "auto minmax(0,1fr)", gap: 12, alignItems: "center",
+                }}>
+                  <div style={{
+                    flexShrink: 0, width: 64, height: 64, fontSize: 34,
+                    display: "grid", placeItems: "center",
+                    background: teamColor, border: `3px solid ${C.ink}`, borderRadius: 12,
+                    boxShadow: `2px 2px 0 ${C.ink}`, transform: "rotate(-3deg)",
+                  }}>{item.icon}</div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 800, lineHeight: 1.2 }}>{item.name}</div>
+                    <div style={{ fontSize: 11, color: C.dim, fontWeight: 600, marginTop: 2 }}>{item.desc}</div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10, gap: 8, flexWrap: "wrap" }}>
+                      <Sticker color={C.yellow}>{item.price}P</Sticker>
+                      <ChunkyButton color={teamColor} disabled={!affordable} onClick={() => handleBuy(item)}>
+                        {affordable ? "Buy" : "Nope"}
+                      </ChunkyButton>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </ChunkyBox>
+    </div>
+  );
+};
+
+// ─── Root ─────────────────────────────────────────────────────
+
+const Y2KApp = () => {
+  const data = window.SVS_DATA;
+  const [tab, setTab] = React.useState("pickban");
+  const [pbState, setPbState] = React.useState(data.PICKBAN_STATE);
+  const [balances, setBalances] = React.useState({
+    bremen:    data.TEAM_SCORES.bremen.shop,
+    wulmstorf: data.TEAM_SCORES.wulmstorf.shop,
+  });
+  const [purchases, setPurchases] = React.useState(data.INITIAL_PURCHASES);
+  const [toast, setToast] = React.useState(null);
+
+  const handleBuy = (item) => {
+    // delegated to Y2KShop — exposed via onBuy for the toast
+  };
+
+  const wrappedSetBalances = (updater) => {
+    setBalances(prev => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      return next;
+    });
+  };
+
+  const wrappedSetPurchases = (updater) => {
+    setPurchases(prev => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      if (next.length > prev.length) {
+        const newest = next[0];
+        setToast(`${newest.team === "bremen" ? "Bremen" : "Wulmstorf"} bought ${newest.item.name}`);
+        setTimeout(() => setToast(null), 2200);
+      }
+      return next;
+    });
+  };
+
+  return (
+    <div style={{
+      width: "100%", minHeight: "100%",
+      background: "#fef3c7", color: "#1a0f00",
+      fontFamily: "'Space Grotesk', system-ui, sans-serif",
+      position: "relative", overflow: "hidden",
+      backgroundImage: `radial-gradient(${C.purple}22 1.5px, transparent 1.5px)`,
+      backgroundSize: "20px 20px",
+    }}>
+      <Y2KHeader scores={data.TEAM_SCORES} round={pbState.current.round} tab={tab} setTab={setTab}/>
+      {tab === "pickban" && <Y2KPickBan data={data} state={pbState} setState={setPbState}/>}
+      {tab === "teams"   && <Y2KTeams   data={data}/>}
+      {tab === "scores"  && <Y2KScoreboard data={data}/>}
+      {tab === "shop"    && (
+        <Y2KShop
+          data={data}
+          balances={balances}
+          setBalances={wrappedSetBalances}
+          purchases={purchases}
+          setPurchases={wrappedSetPurchases}
+        />
+      )}
+
+      {toast && (
+        <div style={{
+          position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%) rotate(-2deg)",
+          background: C.green, color: "#fff", padding: "12px 20px",
+          fontWeight: 800, fontSize: 14, border: `3px solid ${C.ink}`, borderRadius: 14,
+          boxShadow: `4px 4px 0 ${C.ink}`, zIndex: 100, letterSpacing: 0.5,
+        }}>✓ {toast}</div>
+      )}
+    </div>
+  );
+};
+
+window.Y2KApp = Y2KApp;
