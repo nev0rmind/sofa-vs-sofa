@@ -97,7 +97,7 @@ const Countdown = () => {
           </div>
         ))}
       </div>
-      <a href="https://doodle.com/meeting/sofa-vs-sofa" target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
+      <a href="https://dud-poll.inf.tu-dresden.de/tVj2wdniIg/" target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
         <div style={{
           padding: "12px 14px", background: LC.ink, color: LC.yellow,
           border: `3px solid ${LC.ink}`, borderRadius: 12,
