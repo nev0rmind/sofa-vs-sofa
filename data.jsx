@@ -27,7 +27,6 @@ const TEAMS = {
       { id: "kat",    name: "Kat",    role: "Captain",      main: "Rocket League", wins: 16, kd: "2.6", quote: "Aerial or nothing." },
       { id: "kili",   name: "Kili",   role: "Speedrunner",  main: "Mario Kart",    wins: 13, kd: "2.1", quote: "Blue shell-proof." },
       { id: "flo",    name: "Flo",    role: "Tactician",    main: "GeoGuessr",     wins: 10, kd: "1.5", quote: "I smell the asphalt." },
-      { id: "thorben",name: "Thorben",role: "Bruiser",      main: "Wreckfest",     wins: 12, kd: "2.2", quote: "Brakes are for cowards." },
       { id: "dennis", name: "Dennis", role: "Sharpshooter", main: "Splatoon 3",    wins: 11, kd: "2.3", quote: "Aim small, miss small." },
     ],
   },
@@ -48,24 +47,25 @@ const GAME_POOL = [
   { id: "ktane",        name: "Keep Talking & Nobody Explodes",      category: "Party II",  players: "Co-op",        duration: 15, art: "💣" },
   { id: "geoguessr",    name: "GeoGuessr",                           category: "Party II",  players: "Team vs Team", duration: 20, art: "🌍" },
   { id: "uch",          name: "Ultimate Chicken Horse",              category: "Party III", players: "Team Run",     duration: 25, art: "🐔" },
+  { id: "worms",        name: "Worms",                               category: "Strategy",  players: "Team vs Team", duration: 20, art: "🪱" },
+  { id: "trickytowers", name: "Tricky Towers",                       category: "Puzzle",    players: "4 vs 4",       duration: 20, art: "🧱" },
 ];
 
 // Pick & Ban state — mid-flow, bans complete, picks in progress.
 const PICKBAN_STATE = {
-  rounds: 6,
-  bans: [
-    { team: "bremen",    gameId: "wreckfest"  },
-    { team: "wulmstorf", gameId: "gangbeasts" },
-    { team: "bremen",    gameId: "tmnt"       },
-    { team: "wulmstorf", gameId: "marioparty" },
-  ],
-  picks: [
-    { round: 1, team: "wulmstorf", gameId: "mariokart",    points: 1 },
-    { round: 2, team: "bremen",    gameId: "smash",         points: 2 },
-    { round: 3, team: "wulmstorf", gameId: "rocketleague", points: 3 },
-  ],
-  current: { round: 4, action: "pick", team: "bremen", timer: 27 },
+  bans: [],
+  picks: [],
+  currentStep: 0,
 };
+
+const JOKER_DEFS = [
+  { id: "j1", name: "Wildcard",  icon: "🃏", color: "#7c3aed", desc: "Platzhalter — Effekt TBD" },
+  { id: "j2", name: "Redo",      icon: "↩️", color: "#06b6d4", desc: "Platzhalter — Effekt TBD" },
+  { id: "j3", name: "Freeze",    icon: "❄️", color: "#3b82f6", desc: "Platzhalter — Effekt TBD" },
+  { id: "j4", name: "Double",    icon: "✌️", color: "#ec4899", desc: "Platzhalter — Effekt TBD" },
+  { id: "j5", name: "Steal",     icon: "🎯", color: "#f97316", desc: "Platzhalter — Effekt TBD" },
+  { id: "j6", name: "Chaos",     icon: "💀", color: "#ef4444", desc: "Platzhalter — Effekt TBD" },
+];
 
 const SHOP_ITEMS = [
   { id: "snack-s",  name: "Snack Pack S",          price: 5,  icon: "🍿", desc: "Chips & gummy bears" },

@@ -165,198 +165,333 @@ const Y2KHeader = ({ scores, round, tab, setTab }) => {
 
 // ─── Pick & Ban ───────────────────────────────────────────────
 
-const Y2KPickBan = ({ data, state, setState }) => {
-  const { GAME_POOL, TEAMS } = data;
-  const [timer, setTimer] = React.useState(state.current.timer);
+// Step sequence: 3 cycles of BAN×4 → PICK×2, teams alternating globally
+const buildStepSequence = () => {
+  const steps = [];
+  let t = 0;
+  let round = 1;
+  for (let cycle = 0; cycle < 3; cycle++) {
+    for (let b = 0; b < 4; b++) {
+      steps.push({ action: "ban", team: t % 2 === 0 ? "bremen" : "wulmstorf" });
+      t++;
+    }
+    for (let p = 0; p < 2; p++) {
+      steps.push({ action: "pick", team: t % 2 === 0 ? "bremen" : "wulmstorf", round: round++ });
+      t++;
+    }
+  }
+  return steps; // 18 steps: 12 bans + 6 picks
+};
+const STEP_SEQ = buildStepSequence();
+
+const JOKER_DEFS = [
+  { id: "j1", name: "Wildcard", icon: "🃏", color: "#7c3aed", desc: "Platzhalter — Effekt TBD" },
+  { id: "j2", name: "Redo",     icon: "↩️", color: "#06b6d4", desc: "Platzhalter — Effekt TBD" },
+  { id: "j3", name: "Freeze",   icon: "❄️", color: "#3b82f6", desc: "Platzhalter — Effekt TBD" },
+  { id: "j4", name: "Double",   icon: "✌️", color: "#ec4899", desc: "Platzhalter — Effekt TBD" },
+  { id: "j5", name: "Steal",    icon: "🎯", color: "#f97316", desc: "Platzhalter — Effekt TBD" },
+  { id: "j6", name: "Chaos",    icon: "💀", color: "#ef4444", desc: "Platzhalter — Effekt TBD" },
+];
+
+const TeamSidebar = ({ teamId, teamColor, bans, picks, GAME_POOL, label }) => {
+  const teamBans  = bans.filter(b => b.team === teamId);
+  const teamPicks = picks.filter(p => p.team === teamId);
+  return (
+    <ChunkyBox bg={C.paper} radius={18}>
+      <div style={{ padding: 16 }}>
+        <Sticker color={teamColor} style={{ color: "#fff" }}>{label}</Sticker>
+
+        <div style={{ fontSize: 11, color: C.dim, fontWeight: 600, marginTop: 12 }}>BANS ({teamBans.length})</div>
+        <div style={{ marginTop: 6, display: "grid", gap: 5 }}>
+          {teamBans.length === 0 && <div style={{ fontSize: 11, color: C.dim, fontStyle: "italic" }}>Noch keine Bans</div>}
+          {teamBans.map((b, i) => {
+            const g = GAME_POOL.find(x => x.id === b.gameId);
+            return (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 8px", background: C.bg, borderRadius: 8, border: `2px solid ${C.ink}` }}>
+                <div style={{ fontSize: 16 }}>{g.art}</div>
+                <div style={{ flex: 1, textDecoration: "line-through", fontSize: 11, fontWeight: 600 }}>{g.name}</div>
+                <span style={{ fontSize: 9, fontWeight: 800, color: C.red }}>BAN</span>
+              </div>
+            );
+          })}
+        </div>
+
+        <div style={{ fontSize: 11, color: C.dim, fontWeight: 600, marginTop: 12 }}>PICKS ({teamPicks.length})</div>
+        <div style={{ marginTop: 6, display: "grid", gap: 5 }}>
+          {teamPicks.length === 0 && <div style={{ fontSize: 11, color: C.dim, fontStyle: "italic" }}>Noch keine Picks</div>}
+          {teamPicks.map((p, i) => {
+            const g = GAME_POOL.find(x => x.id === p.gameId);
+            return (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 8px", background: teamColor, color: "#fff", borderRadius: 8, border: `2px solid ${C.ink}`, boxShadow: `2px 2px 0 ${C.ink}` }}>
+                <div style={{ fontSize: 16 }}>{g.art}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 9, fontWeight: 800, opacity: 0.8 }}>R{p.round}</div>
+                  <div style={{ fontSize: 11, fontWeight: 700 }}>{g.name}</div>
+                </div>
+                <Pixel size={14} color="#fff">+{p.points}</Pixel>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </ChunkyBox>
+  );
+};
+
+const JokerPanel = ({ jokers, setJokers }) => {
+  const remaining = jokers.filter(j => !j.used).length;
+  return (
+    <ChunkyBox bg={C.bg2} radius={20}>
+      <div style={{ padding: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8, flexWrap: "wrap" }}>
+          <Sticker color={C.purple} style={{ color: "#fff" }}>★ JOKER-SYSTEM ★</Sticker>
+          <div style={{ fontFamily: "'VT323', monospace", fontSize: 28, lineHeight: 1, fontWeight: 700 }}>Joker Pool</div>
+          <div style={{ marginLeft: "auto" }}>
+            <Sticker color={remaining === 0 ? C.red : C.yellow}>{remaining} / 6 ÜBRIG</Sticker>
+          </div>
+        </div>
+        <div style={{ fontSize: 12, color: C.dim, fontWeight: 600, marginBottom: 16 }}>
+          Joker können jederzeit im Abend gespielt werden. Effekte sind Platzhalter — werden noch festgelegt.
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 12 }}>
+          {jokers.map(j => (
+            <div key={j.id} style={{
+              padding: 14, textAlign: "center",
+              background: j.used ? C.bg : j.color,
+              border: `3px solid ${C.ink}`, borderRadius: 16,
+              boxShadow: j.used ? "none" : `4px 4px 0 ${C.ink}`,
+              opacity: j.used ? 0.45 : 1,
+              transition: "all .15s",
+            }}>
+              <div style={{ fontSize: 36, filter: j.used ? "grayscale(1)" : "none" }}>{j.icon}</div>
+              <div style={{ fontSize: 13, fontWeight: 800, color: j.used ? C.dim : "#fff", marginTop: 8, lineHeight: 1.1 }}>{j.name}</div>
+              <div style={{ fontSize: 10, color: j.used ? C.dim : "rgba(255,255,255,0.8)", marginTop: 4, fontWeight: 600, lineHeight: 1.3 }}>{j.desc}</div>
+              {!j.used ? (
+                <button onClick={() => setJokers(prev => prev.map(x => x.id === j.id ? { ...x, used: true } : x))} style={{
+                  marginTop: 10, width: "100%", padding: "7px 0",
+                  background: C.ink, color: C.yellow,
+                  border: `2px solid ${C.ink}`, borderRadius: 8,
+                  fontWeight: 800, fontSize: 11, cursor: "pointer", letterSpacing: 0.5,
+                  fontFamily: "'Space Grotesk', sans-serif",
+                }}>SPIELEN</button>
+              ) : (
+                <div style={{ marginTop: 10, fontSize: 11, fontWeight: 800, color: C.dim, letterSpacing: 0.5 }}>GESPIELT</div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </ChunkyBox>
+  );
+};
+
+const Y2KPickBan = ({ data, state, setState, jokers, setJokers }) => {
+  const { GAME_POOL } = data;
+  const TIMER_MAX = 120;
+  const [timer, setTimer]   = React.useState(TIMER_MAX);
   const [hovered, setHovered] = React.useState(null);
 
+  const { bans, picks, currentStep } = state;
+  const isDone = currentStep >= STEP_SEQ.length;
+  const step   = isDone ? null : STEP_SEQ[currentStep];
+
+  // Reset timer on each new step
   React.useEffect(() => {
-    if (timer <= 0) return;
+    setTimer(TIMER_MAX);
+  }, [currentStep]);
+
+  React.useEffect(() => {
+    if (isDone || timer <= 0) return;
     const id = setInterval(() => setTimer(t => Math.max(0, t - 1)), 1000);
     return () => clearInterval(id);
-  }, [timer, state.current.round]);
+  }, [isDone, currentStep]);
 
-  const banned    = new Set(state.bans.map(b => b.gameId));
-  const picked    = new Set(state.picks.map(p => p.gameId));
-  const turnTeam  = TEAMS[state.current.team];
-  const turnColor = turnTeam.id === "bremen" ? C.bremen : C.wulmstorf;
+  const banned    = new Set(bans.map(b => b.gameId));
+  const picked    = new Set(picks.map(p => p.gameId));
+  const available = GAME_POOL.filter(g => !banned.has(g.id) && !picked.has(g.id));
+  const remainingRounds = 6 - picks.length;
+  const canBan    = available.length > remainingRounds; // protect minimum picks
 
-  const slots = Array.from({ length: state.rounds }, (_, i) => {
-    const round = i + 1;
-    const pick = state.picks.find(p => p.round === round);
-    const isCurrent = round === state.current.round && state.current.action === "pick";
-    return { round, pick, isCurrent, points: round };
-  });
-
-  const handlePick = (gameId) => {
-    if (banned.has(gameId) || picked.has(gameId) || state.current.action !== "pick") return;
-    const newPick  = { round: state.current.round, team: state.current.team, gameId, points: state.current.round };
-    const nextRound = state.current.round + 1;
-    setState({
-      ...state,
-      picks: [...state.picks, newPick],
-      current: nextRound > state.rounds
-        ? { ...state.current, round: nextRound, action: "done" }
-        : { round: nextRound, action: "pick", team: state.current.team === "bremen" ? "wulmstorf" : "bremen", timer: 30 },
-    });
-    setTimer(30);
+  const handleGameClick = (gameId) => {
+    if (isDone || banned.has(gameId) || picked.has(gameId)) return;
+    if (step.action === "ban" && !canBan) return;
+    const newBans  = step.action === "ban"  ? [...bans,  { team: step.team, gameId }] : bans;
+    const newPicks = step.action === "pick" ? [...picks, { round: step.round, team: step.team, gameId, points: step.round }] : picks;
+    setState({ bans: newBans, picks: newPicks, currentStep: currentStep + 1 });
   };
+
+  const stepTeamColor = isDone ? C.dim : (step.team === "bremen" ? C.bremen : C.wulmstorf);
+  const phase = isDone ? 3 : Math.floor(currentStep / 6) + 1;
+  const timerMins = String(Math.floor(timer / 60));
+  const timerSecs = String(timer % 60).padStart(2, "0");
+
+  // 6 round slots
+  const roundSlots = Array.from({ length: 6 }, (_, i) => {
+    const r    = i + 1;
+    const pick = picks.find(p => p.round === r);
+    const seq  = STEP_SEQ.find(s => s.action === "pick" && s.round === r);
+    const isCurrent = !isDone && step.action === "pick" && step.round === r;
+    return { r, pick, isCurrent, seq };
+  });
 
   return (
     <div style={{ padding: 28, display: "grid", gap: 20 }}>
-      {/* Now-selecting bar */}
+
+      {/* ── Status bar ── */}
       <ChunkyBox bg={C.paper} radius={20}>
-        <div style={{ padding: "18px 22px", display: "grid", gridTemplateColumns: "minmax(220px, auto) 1fr auto", alignItems: "center", gap: 24 }}>
+        <div style={{ padding: "18px 22px", display: "grid", gridTemplateColumns: "minmax(200px,auto) 1fr auto", alignItems: "center", gap: 24 }}>
+
+          {/* Left: current action */}
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <Sticker color={turnColor} style={{ color: "#fff", alignSelf: "flex-start" }}>NOW SELECTING</Sticker>
-            <div style={{ fontFamily: "'VT323', monospace", fontSize: 32, lineHeight: 1, color: turnColor, fontWeight: 700 }}>{turnTeam.name}</div>
-            <div style={{ fontSize: 12, color: C.dim, fontWeight: 700 }}>
-              Round {state.current.round} • {state.current.action === "pick" ? "Pick a game" : "Ban a game"}
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              <Sticker color={isDone ? C.green : step.action === "ban" ? C.red : C.green} style={{ color: "#fff" }}>
+                {isDone ? "DRAFT DONE" : step.action === "ban" ? "🚫 BAN" : "✅ PICK"}
+              </Sticker>
+              {!isDone && (
+                <Sticker color={stepTeamColor} style={{ color: "#fff" }}>
+                  {step.team === "bremen" ? "BREMEN" : "WULMSTORF"}
+                </Sticker>
+              )}
             </div>
+            <div style={{ fontFamily: "'VT323', monospace", fontSize: 30, lineHeight: 1, color: stepTeamColor, fontWeight: 700 }}>
+              {isDone ? "Get gaming!" : (step.team === "bremen" ? "Team Bremen" : "Team Wulmstorf")}
+            </div>
+            <div style={{ fontSize: 11, color: C.dim, fontWeight: 700 }}>
+              {isDone
+                ? `${picks.length} Runden gesetzt · ${bans.length} Bans`
+                : `Phase ${phase}/3 · Schritt ${currentStep + 1}/18 · ${step.action === "ban" ? "Klick ein Spiel zum Bannen" : `Pick für Runde ${step.round}`}`}
+            </div>
+            {!isDone && !canBan && step.action === "ban" && (
+              <Sticker color={C.orange} style={{ color: "#fff", fontSize: 10 }}>⚠ Zu wenig Spiele übrig — Ban gesperrt</Sticker>
+            )}
           </div>
 
-          {/* Round slots */}
-          <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
-            {slots.map(s => {
-              const g          = s.pick ? GAME_POOL.find(x => x.id === s.pick.gameId) : null;
-              const slotColor  = s.pick ? (s.pick.team === "bremen" ? C.bremen : C.wulmstorf) : C.bg;
+          {/* Centre: round slots */}
+          <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
+            {roundSlots.map(s => {
+              const g = s.pick ? GAME_POOL.find(x => x.id === s.pick.gameId) : null;
+              const pickerColor = s.pick ? (s.pick.team === "bremen" ? C.bremen : C.wulmstorf) : C.bg;
               return (
-                <div key={s.round} style={{
-                  width: 76, height: 96,
-                  background: s.isCurrent ? C.yellow : (s.pick ? slotColor : C.paper),
+                <div key={s.r} style={{
+                  width: 72, minHeight: 88,
+                  background: s.isCurrent ? C.yellow : (s.pick ? pickerColor : C.paper),
                   border: `3px solid ${C.ink}`, borderRadius: 12,
                   boxShadow: s.isCurrent ? `4px 4px 0 ${C.ink}` : `3px 3px 0 ${C.ink}`,
                   position: "relative", display: "grid", placeItems: "center",
                   animation: s.isCurrent ? "pulse 1s ease-in-out infinite" : "none",
-                  transform: s.isCurrent ? "rotate(-2deg)" : "none",
+                  transform: s.isCurrent ? "rotate(-2deg) scale(1.06)" : "none",
                 }}>
-                  <div style={{ position: "absolute", top: 4, left: 6, fontFamily: "'VT323', monospace", fontSize: 14, color: C.ink, fontWeight: 700 }}>R{s.round}</div>
-                  <div style={{ position: "absolute", top: 4, right: 6, fontFamily: "'VT323', monospace", fontSize: 14, color: C.ink, fontWeight: 700 }}>+{s.points}</div>
-                  <div style={{ fontSize: 30 }}>{g ? g.art : "?"}</div>
-                  <div style={{ position: "absolute", bottom: 4, fontSize: 9, fontWeight: 700, color: s.pick ? "#fff" : C.dim, maxWidth: 64, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", textAlign: "center" }}>
-                    {g ? g.name : "—"}
+                  <div style={{ position: "absolute", top: 4, left: 6, fontFamily: "'VT323', monospace", fontSize: 13, fontWeight: 700 }}>R{s.r}</div>
+                  <div style={{ position: "absolute", top: 4, right: 5, fontFamily: "'VT323', monospace", fontSize: 12, color: C.dim }}>+{s.r}</div>
+                  <div style={{ fontSize: 26 }}>{g ? g.art : "?"}</div>
+                  <div style={{ position: "absolute", bottom: 4, fontSize: 9, fontWeight: 700, color: s.pick ? "#fff" : C.dim, maxWidth: 62, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", textAlign: "center" }}>
+                    {g ? g.name : s.seq ? (s.seq.team === "bremen" ? "BRE" : "WUL") : "—"}
                   </div>
                 </div>
               );
             })}
           </div>
 
-          {/* Timer */}
-          <div style={{ textAlign: "center" }}>
-            <Sticker color={timer <= 10 ? C.red : C.green} style={{ color: "#fff" }}>TIMER</Sticker>
+          {/* Right: timer */}
+          <div style={{ textAlign: "center", minWidth: 90 }}>
+            <Sticker color={timer <= 15 ? C.red : timer <= 30 ? C.orange : C.green} style={{ color: "#fff" }}>TIMER</Sticker>
             <div style={{
-              fontFamily: "'VT323', monospace", fontSize: 64, lineHeight: 1,
-              color: timer <= 10 ? C.red : C.ink, marginTop: 4, fontWeight: 700,
+              fontFamily: "'VT323', monospace", fontSize: 52, lineHeight: 1,
+              color: timer <= 15 ? C.red : C.ink, marginTop: 4, fontWeight: 700,
               animation: timer <= 10 ? "pulse 0.5s ease-in-out infinite" : "none",
-            }}>:{String(timer).padStart(2, "0")}</div>
+            }}>{timerMins}:{timerSecs}</div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: C.dim, marginTop: 2 }}>2 MIN / AKTION</div>
           </div>
+        </div>
+
+        {/* Progress bar — one cell per step */}
+        <div style={{ borderTop: `2px solid ${C.ink}`, display: "flex", height: 8, borderRadius: "0 0 20px 20px", overflow: "hidden" }}>
+          {STEP_SEQ.map((s, i) => (
+            <div key={i} style={{
+              flex: 1,
+              background: i < currentStep
+                ? (s.action === "ban" ? C.red : (s.team === "bremen" ? C.bremen : C.wulmstorf))
+                : i === currentStep ? C.yellow : C.bg2,
+              borderRight: i < STEP_SEQ.length - 1 ? `1px solid ${C.ink}` : "none",
+            }}/>
+          ))}
         </div>
       </ChunkyBox>
 
-      {/* Three-column: Bremen | Pool | Wulmstorf */}
-      <div style={{ display: "grid", gridTemplateColumns: "260px 1fr 260px", gap: 20 }}>
+      {/* ── Three-column: Bremen | Pool | Wulmstorf ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "230px 1fr 230px", gap: 20 }}>
 
-        {/* Bremen sidebar */}
-        {["bremen", "wulmstorf"].reduce((acc, teamId) => {
-          const isBremen = teamId === "bremen";
-          const teamColor = isBremen ? C.bremen : C.wulmstorf;
-          const col = (
-            <ChunkyBox key={teamId} bg={C.paper} radius={18}>
-              <div style={{ padding: 16 }}>
-                <Sticker color={teamColor} style={{ color: "#fff" }}>{isBremen ? "BREMEN" : "WULMSTORF"}</Sticker>
-                <div style={{ fontSize: 11, color: C.dim, fontWeight: 600, marginTop: 10 }}>BANS</div>
-                <div style={{ marginTop: 6, display: "grid", gap: 6 }}>
-                  {state.bans.filter(b => b.team === teamId).map((b, i) => {
-                    const g = GAME_POOL.find(x => x.id === b.gameId);
-                    return (
-                      <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", background: C.bg, borderRadius: 10, border: `2px solid ${C.ink}` }}>
-                        <div style={{ fontSize: 18 }}>{g.art}</div>
-                        <div style={{ flex: 1, textDecoration: "line-through", fontSize: 12, fontWeight: 600 }}>{g.name}</div>
-                        <span style={{ fontSize: 10, fontWeight: 800, color: C.red }}>BAN</span>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div style={{ fontSize: 11, color: C.dim, fontWeight: 600, marginTop: 14 }}>PICKS</div>
-                <div style={{ marginTop: 6, display: "grid", gap: 6 }}>
-                  {state.picks.filter(p => p.team === teamId).map((p, i) => {
-                    const g = GAME_POOL.find(x => x.id === p.gameId);
-                    return (
-                      <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", background: teamColor, color: "#fff", borderRadius: 10, border: `2px solid ${C.ink}`, boxShadow: `2px 2px 0 ${C.ink}` }}>
-                        <div style={{ fontSize: 18 }}>{g.art}</div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: 9, fontWeight: 800, opacity: 0.8 }}>R{p.round}</div>
-                          <div style={{ fontSize: 12, fontWeight: 700 }}>{g.name}</div>
-                        </div>
-                        <Pixel size={16} color="#fff">+{p.points}</Pixel>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </ChunkyBox>
-          );
-          return isBremen ? [col, ...acc] : [...acc, col];
-        }, [])}
+        <TeamSidebar teamId="bremen" teamColor={C.bremen} bans={bans} picks={picks} GAME_POOL={GAME_POOL} label="BREMEN"/>
 
-        {/* Game pool — inserted between the two sidebars above via grid order */}
-        <ChunkyBox bg={C.paper} radius={18} style={{ gridColumn: "2", gridRow: "1" }}>
+        {/* Game pool */}
+        <ChunkyBox bg={C.paper} radius={18} style={{ gridColumn: 2, gridRow: 1 }}>
           <div style={{ padding: 18 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
               <div>
-                <div style={{ fontFamily: "'VT323', monospace", fontSize: 28, lineHeight: 1, color: C.ink, fontWeight: 700 }}>Game Pool</div>
-                <div style={{ fontSize: 12, color: C.dim, marginTop: 2 }}>Tap a game to pick it for the next round.</div>
+                <div style={{ fontFamily: "'VT323', monospace", fontSize: 26, lineHeight: 1, fontWeight: 700 }}>
+                  {isDone ? "✅ Alle Picks gesetzt!" : step.action === "ban" ? "🚫 Wähle ein Spiel zum Bannen" : `✅ Wähle ein Spiel für Runde ${step.round}`}
+                </div>
+                <div style={{ fontSize: 11, color: C.dim, marginTop: 2 }}>
+                  {available.length} verfügbar · {banned.size} gebannt · {picked.size} gepickt
+                </div>
               </div>
-              <div style={{ display: "flex", gap: 6 }}>
-                <Sticker color={C.bg2}>{GAME_POOL.length} titles</Sticker>
-                <Sticker color={C.red}  style={{ color: "#fff" }}>{banned.size} banned</Sticker>
-                <Sticker color={C.green} style={{ color: "#fff" }}>{picked.size} picked</Sticker>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                <Sticker color={C.bg2}>{GAME_POOL.length} Spiele</Sticker>
+                <Sticker color={C.red}   style={{ color: "#fff" }}>{banned.size} bans</Sticker>
+                <Sticker color={C.green} style={{ color: "#fff" }}>{picked.size} picks</Sticker>
               </div>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
               {GAME_POOL.map(g => {
                 const isBanned  = banned.has(g.id);
                 const isPicked  = picked.has(g.id);
-                const pickedBy  = state.picks.find(p => p.gameId === g.id);
-                const accent    = isPicked ? (pickedBy.team === "bremen" ? C.bremen : C.wulmstorf) : isBanned ? C.red : C.purple;
-                const clickable = !isBanned && !isPicked && state.current.action === "pick";
+                const pickedBy  = picks.find(p => p.gameId === g.id);
+                const isHovered = hovered === g.id;
+                const clickable = !isDone && !isBanned && !isPicked && (step.action === "pick" || canBan);
+                const accent    = isPicked ? (pickedBy.team === "bremen" ? C.bremen : C.wulmstorf)
+                                : isBanned ? C.red
+                                : step && step.action === "ban" ? C.red : C.purple;
                 return (
                   <button key={g.id}
-                    onClick={() => handlePick(g.id)}
+                    onClick={() => handleGameClick(g.id)}
                     onMouseEnter={() => setHovered(g.id)}
                     onMouseLeave={() => setHovered(null)}
                     disabled={!clickable}
                     style={{
-                      position: "relative", padding: 12,
+                      position: "relative", padding: 10,
                       background: isBanned ? C.bg2 : isPicked ? accent : C.paper,
                       color: isPicked ? "#fff" : C.ink,
-                      border: `3px solid ${C.ink}`, borderRadius: 14,
-                      boxShadow: hovered === g.id && clickable ? `5px 5px 0 ${C.ink}` : `3px 3px 0 ${C.ink}`,
+                      border: `3px solid ${C.ink}`, borderRadius: 12,
+                      boxShadow: isHovered && clickable ? `5px 5px 0 ${C.ink}` : `3px 3px 0 ${C.ink}`,
                       cursor: clickable ? "pointer" : "default", textAlign: "left",
-                      transition: "all .12s",
-                      transform: hovered === g.id && clickable ? "translate(-2px,-2px) rotate(-1deg)" : "none",
-                      opacity: isBanned ? 0.6 : 1,
+                      transition: "all .1s",
+                      transform: isHovered && clickable ? "translate(-2px,-2px) rotate(-1deg)" : "none",
+                      opacity: isBanned ? 0.45 : 1,
                     }}
                   >
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                      <div style={{ fontSize: 32, filter: isBanned ? "grayscale(0.5)" : "none" }}>{g.art}</div>
-                      <Sticker color={isPicked ? "#fff" : isBanned ? C.red : C.yellow} style={{ color: isPicked ? accent : C.ink, fontSize: 9 }}>
+                      <div style={{ fontSize: 26, filter: isBanned ? "grayscale(1)" : "none" }}>{g.art}</div>
+                      <Sticker color={isPicked ? "rgba(255,255,255,0.25)" : isBanned ? C.red : C.yellow}
+                        style={{ color: isPicked ? "#fff" : C.ink, fontSize: 9 }}>
                         {g.category}
                       </Sticker>
                     </div>
-                    <div style={{ fontSize: 14, fontWeight: 800, marginTop: 8, lineHeight: 1.15, textDecoration: isBanned ? "line-through" : "none" }}>
+                    <div style={{ fontSize: 12, fontWeight: 800, marginTop: 6, lineHeight: 1.2, textDecoration: isBanned ? "line-through" : "none" }}>
                       {g.name}
                     </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontSize: 11, fontWeight: 600, opacity: 0.8 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, fontSize: 10, fontWeight: 600, opacity: 0.75 }}>
                       <span>{g.players}</span>
-                      <span>{g.duration} min</span>
+                      <span>{g.duration}m</span>
                     </div>
                     {isBanned && (
-                      <div style={{ position: "absolute", top: -8, right: -8, background: C.red, color: "#fff", fontSize: 10, fontWeight: 800, padding: "3px 8px", border: `2px solid ${C.ink}`, borderRadius: 999, boxShadow: `2px 2px 0 ${C.ink}`, transform: "rotate(8deg)" }}>BANNED</div>
+                      <div style={{ position: "absolute", top: -8, right: -8, background: C.red, color: "#fff", fontSize: 9, fontWeight: 800, padding: "3px 7px", border: `2px solid ${C.ink}`, borderRadius: 999, boxShadow: `2px 2px 0 ${C.ink}`, transform: "rotate(8deg)" }}>BAN</div>
                     )}
                     {isPicked && (
-                      <div style={{ position: "absolute", top: -8, right: -8, background: C.yellow, color: C.ink, fontSize: 10, fontWeight: 800, padding: "3px 8px", border: `2px solid ${C.ink}`, borderRadius: 999, boxShadow: `2px 2px 0 ${C.ink}`, transform: "rotate(8deg)" }}>R{pickedBy.round}</div>
+                      <div style={{ position: "absolute", top: -8, right: -8, background: C.yellow, color: C.ink, fontSize: 9, fontWeight: 800, padding: "3px 7px", border: `2px solid ${C.ink}`, borderRadius: 999, boxShadow: `2px 2px 0 ${C.ink}`, transform: "rotate(8deg)" }}>R{pickedBy.round}</div>
+                    )}
+                    {!isBanned && !isPicked && clickable && step && step.action === "ban" && isHovered && (
+                      <div style={{ position: "absolute", inset: 0, borderRadius: 9, border: `3px dashed ${C.red}`, pointerEvents: "none" }}/>
                     )}
                   </button>
                 );
@@ -364,7 +499,12 @@ const Y2KPickBan = ({ data, state, setState }) => {
             </div>
           </div>
         </ChunkyBox>
+
+        <TeamSidebar teamId="wulmstorf" teamColor={C.wulmstorf} bans={bans} picks={picks} GAME_POOL={GAME_POOL} label="WULMSTORF"/>
       </div>
+
+      {/* ── Joker panel ── */}
+      <JokerPanel jokers={jokers} setJokers={setJokers}/>
     </div>
   );
 };
@@ -710,25 +850,18 @@ const Y2KShop = ({ data, balances, setBalances, purchases, setPurchases }) => {
 
 const Y2KApp = () => {
   const data = window.SVS_DATA;
-  const [tab, setTab] = React.useState("pickban");
-  const [pbState, setPbState] = React.useState(data.PICKBAN_STATE);
+  const [tab, setTab]           = React.useState("pickban");
+  const [pbState, setPbState]   = React.useState(data.PICKBAN_STATE);
+  const [jokers, setJokers]     = React.useState(JOKER_DEFS.map(j => ({ ...j, used: false })));
   const [balances, setBalances] = React.useState({
     bremen:    data.TEAM_SCORES.bremen.shop,
     wulmstorf: data.TEAM_SCORES.wulmstorf.shop,
   });
   const [purchases, setPurchases] = React.useState(data.INITIAL_PURCHASES);
-  const [toast, setToast] = React.useState(null);
+  const [toast, setToast]         = React.useState(null);
 
-  const handleBuy = (item) => {
-    // delegated to Y2KShop — exposed via onBuy for the toast
-  };
-
-  const wrappedSetBalances = (updater) => {
-    setBalances(prev => {
-      const next = typeof updater === "function" ? updater(prev) : updater;
-      return next;
-    });
-  };
+  const wrappedSetBalances = (updater) =>
+    setBalances(prev => typeof updater === "function" ? updater(prev) : updater);
 
   const wrappedSetPurchases = (updater) => {
     setPurchases(prev => {
@@ -742,6 +875,8 @@ const Y2KApp = () => {
     });
   };
 
+  const currentRound = Math.min(pbState.picks.length + 1, 6);
+
   return (
     <div style={{
       width: "100%", minHeight: "100%",
@@ -751,8 +886,10 @@ const Y2KApp = () => {
       backgroundImage: `radial-gradient(${C.purple}22 1.5px, transparent 1.5px)`,
       backgroundSize: "20px 20px",
     }}>
-      <Y2KHeader scores={data.TEAM_SCORES} round={pbState.current.round} tab={tab} setTab={setTab}/>
-      {tab === "pickban" && <Y2KPickBan data={data} state={pbState} setState={setPbState}/>}
+      <Y2KHeader scores={data.TEAM_SCORES} round={currentRound} tab={tab} setTab={setTab}/>
+      {tab === "pickban" && (
+        <Y2KPickBan data={data} state={pbState} setState={setPbState} jokers={jokers} setJokers={setJokers}/>
+      )}
       {tab === "teams"   && <Y2KTeams   data={data}/>}
       {tab === "scores"  && <Y2KScoreboard data={data}/>}
       {tab === "shop"    && (
@@ -764,7 +901,6 @@ const Y2KApp = () => {
           setPurchases={wrappedSetPurchases}
         />
       )}
-
       {toast && (
         <div style={{
           position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%) rotate(-2deg)",
