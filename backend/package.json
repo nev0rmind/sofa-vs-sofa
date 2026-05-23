@@ -1,0 +1,16 @@
+{
+  "name": "sofa-vs-sofa-backend",
+  "version": "1.0.0",
+  "description": "Tournament stats backend for Sofa vs Sofa",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "seed": "node db/seed.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^9.4.3",
+    "cors": "^2.8.5",
+    "express": "^4.18.3"
+  }
+}

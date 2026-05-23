@@ -57,7 +57,6 @@ const TEAMS = {
       { id: "kat",    name: "Kat",    role: "Captain",      main: "Rocket League", wins: 16, kd: "2.6", quote: "Aerial or nothing." },
       { id: "kili",   name: "Kili",   role: "Speedrunner",  main: "Mario Kart",    wins: 13, kd: "2.1", quote: "Blue shell-proof." },
       { id: "flo",    name: "Flo",    role: "Tactician",    main: "GeoGuessr",     wins: 10, kd: "1.5", quote: "I smell the asphalt." },
-      { id: "thorben",name: "Thorben",role: "Bruiser",      main: "Wreckfest",     wins: 12, kd: "2.2", quote: "Brakes are for cowards." },
       { id: "dennis", name: "Dennis", role: "Sharpshooter", main: "Splatoon 3",    wins: 11, kd: "2.3", quote: "Aim small, miss small." },
     ],
   },
@@ -78,6 +77,8 @@ const GAME_POOL = [
   { id: "ktane",        name: "Keep Talking & Nobody Explodes",      category: "Party II",  players: "Co-op",        duration: 15, art: "💣" },
   { id: "geoguessr",    name: "GeoGuessr",                           category: "Party II",  players: "Team vs Team", duration: 20, art: "🌍" },
   { id: "uch",          name: "Ultimate Chicken Horse",              category: "Party III", players: "Team Run",     duration: 25, art: "🐔" },
+  { id: "worms",        name: "Worms",         category: "Strategy", players: "Team vs Team", duration: 20, art: "🪱" },
+  { id: "trickytowers", name: "Tricky Towers", category: "Puzzle",   players: "4 vs 4",       duration: 20, art: "🧱" },
 ];
 
 const PICKBAN_STATE = {
@@ -220,11 +221,22 @@ const LStar = ({ color, size = 60, style = {} }) => (
 // ─── Countdown (date TBD) ─────────────────────────────────────
 
 const Countdown = () => {
+  const TARGET = new Date('2026-07-11T14:00:00Z'); // 16:00 CEST (UTC+2)
+  const [diff, setDiff] = React.useState(TARGET - Date.now());
+  React.useEffect(() => {
+    const id = setInterval(() => setDiff(TARGET - Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const total = Math.max(0, diff);
+  const days  = Math.floor(total / 86400000);
+  const hrs   = Math.floor((total % 86400000) / 3600000);
+  const mins  = Math.floor((total % 3600000) / 60000);
+  const secs  = Math.floor((total % 60000) / 1000);
   const cells = [
-    { v: "XX", label: "DAYS", c: LC.purple },
-    { v: "XX", label: "HRS",  c: LC.pink   },
-    { v: "XX", label: "MIN",  c: LC.cyan   },
-    { v: "XX", label: "SEC",  c: LC.orange },
+    { v: String(days).padStart(2, "0"), label: "DAYS", c: LC.purple },
+    { v: String(hrs).padStart(2, "0"),  label: "HRS",  c: LC.pink   },
+    { v: String(mins).padStart(2, "0"), label: "MIN",  c: LC.cyan   },
+    { v: String(secs).padStart(2, "0"), label: "SEC",  c: LC.orange },
   ];
   return (
     <div style={{ display: "grid", gap: 12 }}>
